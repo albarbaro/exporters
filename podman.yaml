@@ -1,0 +1,47 @@
+# Save the output of this file and use kubectl create -f to import
+# it into Kubernetes.
+#
+# Created with podman-4.1.0
+
+# NOTE: If you generated this yaml from an unprivileged and rootless podman container on an SELinux
+# enabled system, check the podman generate kube man page for steps to follow to ensure that your pod/container
+# has the right permissions to access the volumes added.
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    io.kubernetes.cri-o.TTY/prometheus: "false"
+    io.podman.annotations.autoremove/prometheus: "FALSE"
+    io.podman.annotations.init/prometheus: "FALSE"
+    io.podman.annotations.privileged/prometheus: "FALSE"
+    io.podman.annotations.publish-all/prometheus: "FALSE"
+  creationTimestamp: "2022-11-26T23:21:34Z"
+  labels:
+    app: prometheus-pod
+  name: prometheus-pod
+spec:
+  containers:
+  - args:
+    - --config.file=/etc/prometheus/prometheus.yml
+    - --storage.tsdb.path=/prometheus
+    - --web.console.libraries=/usr/share/prometheus/console_libraries
+    - --web.console.templates=/usr/share/prometheus/consoles
+    image: docker.io/prom/prometheus:latest
+    name: prometheus
+    ports:
+    - containerPort: 9090
+      hostPort: 9090
+    securityContext:
+      capabilities:
+        drop:
+        - CAP_MKNOD
+        - CAP_NET_RAW
+        - CAP_AUDIT_WRITE
+    volumeMounts:
+    - mountPath: /prometheus
+      name: 7bb18020f0fe4fbbfca7e2b9825b11b352e249b02c47030cdca16513c265aa46-pvc
+  volumes:
+  - name: 7bb18020f0fe4fbbfca7e2b9825b11b352e249b02c47030cdca16513c265aa46-pvc
+    persistentVolumeClaim:
+      claimName: 7bb18020f0fe4fbbfca7e2b9825b11b352e249b02c47030cdca16513c265aa46
