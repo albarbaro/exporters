@@ -39,9 +39,9 @@ func (gc *GithubClient) Client() *github.Client {
 }
 
 func (gc *GithubClient) SearchCommit(hash string) (*github.Commit, error) {
-	commits, _, err := gc.Client().Search.Commits(context.Background(), "hash:"+hash, &github.SearchOptions{Sort: "created", Order: "asc"})
+	commits, _, err := gc.Client().Search.Commits(context.Background(), "hash:"+hash, &github.SearchOptions{})
 	if err != nil {
-		fmt.Println(err)
+		//fmt.Println("Search error: ", err)
 		return nil, err
 	}
 	if commits.GetTotal() == 0 {
@@ -52,5 +52,17 @@ func (gc *GithubClient) SearchCommit(hash string) (*github.Commit, error) {
 	}
 
 	commit := commits.Commits[0].Commit
+	return commit, nil
+}
+
+func (gc *GithubClient) GetCommitFromOrgAndRepo(org string, repo string, hash string) (*github.Commit, error) {
+	commits, _, err := gc.Client().Repositories.GetCommit(context.Background(), org, repo, hash, &github.ListOptions{})
+
+	if err != nil {
+		//fmt.Println("Can't get ", hash, " use search instead")
+		return nil, err
+	}
+
+	commit := commits.Commit
 	return commit, nil
 }

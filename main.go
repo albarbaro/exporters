@@ -17,7 +17,7 @@ func main() {
 		return
 	}
 	reg.MustRegister(foo)
-
+	log.Println("Running exporters...")
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 	log.Fatal(http.ListenAndServe(":9101", nil))
 }

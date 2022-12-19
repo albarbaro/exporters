@@ -85,9 +85,7 @@ func (k *KubeClients) ListArgoCDAppsByLabels(labelMap map[string]string) (*argoc
 
 func (k *KubeClients) GetImagesFromArgoCDApp(app *argocd.Application) ([]string, error) {
 	images := []string{}
-	for _, image := range app.Status.Summary.Images {
-		images = append(images, image)
-	}
+	images = append(images, app.Status.Summary.Images...)
 	return images, nil
 }
 
@@ -95,9 +93,7 @@ func (k *KubeClients) GetImagesFromArgoCDAppList(list *argocd.ApplicationList) (
 	images := []string{}
 
 	for _, app := range list.Items {
-		for _, image := range app.Status.Summary.Images {
-			images = append(images, image)
-		}
+		images = append(images, app.Status.Summary.Images...)
 	}
 
 	return images, nil
@@ -105,7 +101,7 @@ func (k *KubeClients) GetImagesFromArgoCDAppList(list *argocd.ApplicationList) (
 
 func (k *KubeClients) ListDeploymentsByLabels() (*appsv1.DeploymentList, error) {
 
-	deploymentList, err := k.kubeClient.AppsV1().Deployments("").List(context.Background(), metav1.ListOptions{LabelSelector: "control-plane=controller-manager"})
+	deploymentList, err := k.kubeClient.AppsV1().Deployments("").List(context.Background(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/instance"})
 
 	if err != nil {
 		return nil, err
@@ -114,11 +110,11 @@ func (k *KubeClients) ListDeploymentsByLabels() (*appsv1.DeploymentList, error) 
 	return deploymentList, nil
 }
 
-func (k *KubeClients) IsDeploymentActive(deployment *appsv1.Deployment) bool {
+func (k *KubeClients) IsDeploymentActiveSince(deployment *appsv1.Deployment) (bool, metav1.Time) {
 	for _, condition := range deployment.Status.Conditions {
 		if condition.Type == "Available" && condition.Status == "True" {
-			return true
+			return true, condition.LastUpdateTime
 		}
 	}
-	return false
+	return false, metav1.Time{}
 }

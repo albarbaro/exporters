@@ -7,6 +7,7 @@ require (
 	github.com/google/go-github/v48 v48.1.0
 	github.com/prometheus/client_golang v1.11.0
 	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb
+	k8s.io/api v0.23.3
 	k8s.io/apimachinery v0.23.3
 	k8s.io/client-go v0.23.3
 	sigs.k8s.io/controller-runtime v0.11.0
@@ -117,7 +118,6 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/api v0.23.3 // indirect
 	k8s.io/apiserver v0.23.1 // indirect
 	k8s.io/cli-runtime v0.23.1 // indirect
 	k8s.io/component-base v0.23.1 // indirect
