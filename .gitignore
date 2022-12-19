@@ -23,6 +23,8 @@ tmp/
 .vscode/targets.log
 .cache/
 .tmp/
+Dockerfile
+resources/
 
 # RP Preproc output
 rp_preproc/
