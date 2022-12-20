@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	argocd "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -101,7 +102,7 @@ func (k *KubeClients) GetImagesFromArgoCDAppList(list *argocd.ApplicationList) (
 
 func (k *KubeClients) ListDeploymentsByLabels() (*appsv1.DeploymentList, error) {
 
-	deploymentList, err := k.kubeClient.AppsV1().Deployments("").List(context.Background(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/instance"})
+	deploymentList, err := k.kubeClient.AppsV1().Deployments("").List(context.Background(), metav1.ListOptions{LabelSelector: APP_LABEL})
 
 	if err != nil {
 		return nil, err
@@ -117,4 +118,24 @@ func (k *KubeClients) IsDeploymentActiveSince(deployment *appsv1.Deployment) (bo
 		}
 	}
 	return false, metav1.Time{}
+}
+
+func (k *KubeClients) GetDeploymentReplicaSetCreationTime(namespace string, owner string, image string) (metav1.Time, error) {
+
+	rsList, err := k.kubeClient.AppsV1().ReplicaSets(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return metav1.Time{}, err
+	}
+
+	for _, rs := range rsList.Items {
+		fmt.Println("checking namespace ", namespace, " for image ", image, " with owner ", owner)
+		if rs.OwnerReferences[0].Name == owner {
+			for _, cont := range rs.Spec.Template.Spec.Containers {
+				if cont.Image == image {
+					return rs.ObjectMeta.CreationTimestamp, nil
+				}
+			}
+		}
+	}
+	return metav1.Time{}, fmt.Errorf("no replicaset found for %s", image)
 }

@@ -101,9 +101,15 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 					// If the deployment is active we also collect the deploy time metric using the deployment creation timestamp
 					isActive, _ := collector.kubeClient.IsDeploymentActiveSince(&depl)
 					if isActive {
-						m1 := prometheus.MustNewConstMetric(collector.deployTimeMetric, prometheus.GaugeValue, float64(depl.CreationTimestamp.UnixMilli()), component, fields["hash"], cont.Image, namespace)
-						m1 = prometheus.NewMetricWithTimestamp(time.Now(), m1)
-						ch <- m1
+						creationTime, err := collector.kubeClient.GetDeploymentReplicaSetCreationTime(namespace, depl.Name, cont.Image)
+						if err != nil {
+							fmt.Println(err)
+						} else {
+							m1 := prometheus.MustNewConstMetric(collector.deployTimeMetric, prometheus.GaugeValue, float64(creationTime.UnixMilli()), component, fields["hash"], cont.Image, namespace)
+							m1 = prometheus.NewMetricWithTimestamp(time.Now(), m1)
+							ch <- m1
+						}
+
 					} else {
 						fmt.Printf("%s deploy time not collected because deployment is not in active state.\n", cont.Image)
 					}
