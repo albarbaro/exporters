@@ -99,9 +99,9 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 					}
 
 					// If the deployment is active we also collect the deploy time metric using the deployment creation timestamp
-					isActive, lastUpdate := collector.kubeClient.IsDeploymentActiveSince(&depl)
+					isActive, _ := collector.kubeClient.IsDeploymentActiveSince(&depl)
 					if isActive {
-						m1 := prometheus.MustNewConstMetric(collector.deployTimeMetric, prometheus.GaugeValue, float64(lastUpdate.UnixMilli()), component, fields["hash"], cont.Image, namespace)
+						m1 := prometheus.MustNewConstMetric(collector.deployTimeMetric, prometheus.GaugeValue, float64(depl.CreationTimestamp.UnixMilli()), component, fields["hash"], cont.Image, namespace)
 						m1 = prometheus.NewMetricWithTimestamp(time.Now(), m1)
 						ch <- m1
 					} else {
