@@ -92,7 +92,7 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 				if !ok {
 					if err == nil {
 						m1 := prometheus.MustNewConstMetric(collector.commitTimeMetric, prometheus.GaugeValue, float64(commit.Author.Date.Unix()), component, fields["hash"], cont.Image, namespace)
-						m1 = prometheus.NewMetricWithTimestamp(commit.Author.Date.UTC(), m1)
+						m1 = prometheus.NewMetricWithTimestamp(*commit.Author.Date, m1)
 						ch <- m1
 					}
 
