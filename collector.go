@@ -75,7 +75,7 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 	for _, depl := range deploymentList.Items {
 		for _, cont := range depl.Spec.Template.Spec.Containers {
 			imagesFromDeployments = append(imagesFromDeployments, cont.Image)
-			if strings.HasPrefix(cont.Image, "quay.io/redhat-appstudio/") || strings.HasPrefix(cont.Image, "quay.io/stolostron/") || strings.HasPrefix(cont.Image, "quay.io/abarbaro/") {
+			if strings.HasPrefix(cont.Image, "quay.io/redhat-appstudio/") || strings.HasPrefix(cont.Image, "quay.io/redhat-appstudio-qe/") || strings.HasPrefix(cont.Image, "quay.io/stolostron/") || strings.HasPrefix(cont.Image, "quay.io/abarbaro/") {
 				fmt.Println("collecting data for image ", cont.Image)
 				namespace := depl.Namespace
 				component := depl.Labels[APP_LABEL]
