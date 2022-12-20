@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -92,8 +91,8 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 				_, ok := commitHashSet[cont.Image]
 				if !ok {
 					if err == nil {
-						m1 := prometheus.MustNewConstMetric(collector.commitTimeMetric, prometheus.GaugeValue, float64(commit.Author.Date.UnixMilli()), component, fields["hash"], cont.Image, namespace)
-						m1 = prometheus.NewMetricWithTimestamp(time.Now(), m1)
+						m1 := prometheus.MustNewConstMetric(collector.commitTimeMetric, prometheus.GaugeValue, float64(commit.Author.Date.Unix()), component, fields["hash"], cont.Image, namespace)
+						m1 = prometheus.NewMetricWithTimestamp(commit.Author.Date.UTC(), m1)
 						ch <- m1
 					}
 
@@ -105,8 +104,8 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 						if err != nil {
 							fmt.Println(err)
 						} else {
-							m1 := prometheus.MustNewConstMetric(collector.deployTimeMetric, prometheus.GaugeValue, float64(creationTime.UnixMilli()), component, fields["hash"], cont.Image, namespace)
-							m1 = prometheus.NewMetricWithTimestamp(time.Now(), m1)
+							m1 := prometheus.MustNewConstMetric(collector.deployTimeMetric, prometheus.GaugeValue, float64(creationTime.Unix()), component, fields["hash"], cont.Image, namespace)
+							m1 = prometheus.NewMetricWithTimestamp(creationTime.Time, m1)
 							ch <- m1
 						}
 
