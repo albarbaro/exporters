@@ -76,7 +76,6 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 		for _, cont := range depl.Spec.Template.Spec.Containers {
 			imagesFromDeployments = append(imagesFromDeployments, cont.Image)
 			if strings.HasPrefix(cont.Image, "quay.io/redhat-appstudio/") || strings.HasPrefix(cont.Image, "quay.io/redhat-appstudio-qe/") || strings.HasPrefix(cont.Image, "quay.io/stolostron/") || strings.HasPrefix(cont.Image, "quay.io/abarbaro/") {
-				fmt.Println("collecting data for image ", cont.Image)
 				namespace := depl.Namespace
 				component := depl.Labels[APP_LABEL]
 
@@ -99,6 +98,7 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 					}
 
 					// If the deployment is active we also collect the deploy time metric using the deployment creation timestamp
+					//
 					isActive, _ := collector.kubeClient.IsDeploymentActiveSince(&depl)
 					if isActive {
 						creationTime, err := collector.kubeClient.GetDeploymentReplicaSetCreationTime(namespace, depl.Name, cont.Image)

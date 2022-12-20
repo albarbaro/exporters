@@ -128,7 +128,6 @@ func (k *KubeClients) GetDeploymentReplicaSetCreationTime(namespace string, owne
 	}
 
 	for _, rs := range rsList.Items {
-		fmt.Println("checking namespace ", namespace, " for image ", image, " with owner ", owner)
 		if rs.OwnerReferences[0].Name == owner {
 			for _, cont := range rs.Spec.Template.Spec.Containers {
 				if cont.Image == image {
