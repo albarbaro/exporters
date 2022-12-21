@@ -94,6 +94,7 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 						m1 := prometheus.MustNewConstMetric(collector.commitTimeMetric, prometheus.GaugeValue, float64(commit.Author.Date.Unix()), component, fields["hash"], cont.Image, namespace)
 						m1 = prometheus.NewMetricWithTimestamp(*commit.Author.Date, m1)
 						ch <- m1
+						fmt.Println("collected committime for ", cont.Image)
 					}
 
 					// If the deployment is active we also collect the deploy time metric using the deployment creation timestamp
@@ -106,6 +107,7 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 							m1 := prometheus.MustNewConstMetric(collector.deployTimeMetric, prometheus.GaugeValue, float64(creationTime.Unix()), component, fields["hash"], cont.Image, namespace)
 							m1 = prometheus.NewMetricWithTimestamp(creationTime.Time, m1)
 							ch <- m1
+							fmt.Println("collected deploytime for ", cont.Image)
 						}
 
 					} else {
@@ -116,7 +118,7 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 
 				commitHashSet[cont.Image] = true
 			} else {
-				fmt.Printf("%s image is filtered out because not a redhat-appstudio one.\n", cont.Image)
+				//fmt.Printf("%s image is filtered out because not a redhat-appstudio one.\n", cont.Image)
 			}
 		}
 
