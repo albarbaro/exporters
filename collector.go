@@ -97,7 +97,6 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 					}
 
 					// If the deployment is active we also collect the deploy time metric using the deployment creation timestamp
-					//
 					isActive, _ := collector.kubeClient.IsDeploymentActiveSince(&depl)
 					if isActive {
 						creationTime, err := collector.kubeClient.GetDeploymentReplicaSetCreationTime(namespace, depl.Name, cont.Image)
