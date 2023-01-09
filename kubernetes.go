@@ -6,6 +6,7 @@ import (
 
 	argocd "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -100,15 +101,26 @@ func (k *KubeClients) GetImagesFromArgoCDAppList(list *argocd.ApplicationList) (
 	return images, nil
 }
 
-func (k *KubeClients) ListDeploymentsByLabels() (*appsv1.DeploymentList, error) {
+func (k *KubeClients) ListDeploymentsByLabels(label string) (*appsv1.DeploymentList, error) {
 
-	deploymentList, err := k.kubeClient.AppsV1().Deployments("").List(context.Background(), metav1.ListOptions{LabelSelector: APP_LABEL})
+	deploymentList, err := k.kubeClient.AppsV1().Deployments("").List(context.Background(), metav1.ListOptions{LabelSelector: label})
 
 	if err != nil {
 		return nil, err
 	}
 
 	return deploymentList, nil
+}
+
+func (k *KubeClients) GetConfigMap(name string, namespace string) (*v1.ConfigMap, error) {
+
+	configMap, err := k.kubeClient.CoreV1().ConfigMaps(namespace).Get(context.Background(), name, metav1.GetOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return configMap, nil
 }
 
 func (k *KubeClients) IsDeploymentActiveSince(deployment *appsv1.Deployment) (bool, metav1.Time) {
