@@ -1,0 +1,32 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: exporter
+  namespace: dora-metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: exporter
+  template:
+    metadata:
+      labels:
+        app: exporter
+    spec:
+      containers:
+        - name: container
+          image: 'quay.io/abarbaro/exporters:2d7e2aad41c9cd573f14e740112063f269783cb3'
+          ports:
+            - name: metrics-port
+              containerPort: 9101
+              protocol: TCP
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: exporters-secret
+                  key: github
+                  optional: false
+      serviceAccountName: exportersa
+      serviceAccount: exportersa

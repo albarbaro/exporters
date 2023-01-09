@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- namespace.yaml
+- serviceaccount.yaml
+- clusterrole.yaml
+- clusterrolebinding.yaml
+- deployment.yaml
+- service.yaml
+- route.yaml
+
+images:
+  - name: quay.io/abarbaro/exporters
+    newName: quay.io/abarbaro/exporters
+    newTag: 2d7e2aad41c9cd573f14e740112063f269783cb3
