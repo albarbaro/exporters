@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: container
-          image: 'quay.io/abarbaro/exporters:2d7e2aad41c9cd573f14e740112063f269783cb3'
+          image: 'quay.io/abarbaro/exporters:69500cf562373bb57b4d50f4a116d2fc4f38b794'
           ports:
             - name: metrics-port
               containerPort: 9101
