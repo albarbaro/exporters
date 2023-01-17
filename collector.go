@@ -193,13 +193,17 @@ func (collector *CommitTimeCollector) CollectDeployTime(ch chan<- prometheus.Met
 			if err != nil {
 				klog.Error(err)
 			} else {
-				m1 := prometheus.MustNewConstMetric(collector.deployTimeMetric, prometheus.GaugeValue, float64(creationTime.Unix()), component, fields["hash"], cont.Image, namespace)
-				// We care only deployments collected after install time, so we can force-set the timestamp to the deplytime without loosing any data
-				// This will simplify building the metrics in Grafana.
-				// Active deplyments with current timestamp are anyways collected by the activeDeploymentMetric right after
-				m1 = prometheus.NewMetricWithTimestamp(creationTime.Time, m1)
-				ch <- m1
-				klog.V(3).Infof("collected deploytime for %s", cont.Image)
+
+				isOkToIngest := creationTime.After(time.Now().Add(-1 * time.Hour))
+				if isOkToIngest {
+					m1 := prometheus.MustNewConstMetric(collector.deployTimeMetric, prometheus.GaugeValue, float64(creationTime.Unix()), component, fields["hash"], cont.Image, namespace)
+					// We care only deployments collected after install time, so we can force-set the timestamp to the deplytime without loosing any data
+					// This will simplify building the metrics in Grafana.
+					// Active deplyments with current timestamp are anyways collected by the activeDeploymentMetric right after
+					m1 = prometheus.NewMetricWithTimestamp(creationTime.Time, m1)
+					ch <- m1
+					klog.V(3).Infof("collected deploytime for %s", cont.Image)
+				}
 
 				m2 := prometheus.MustNewConstMetric(collector.activeDeploymentMetric, prometheus.GaugeValue, float64(creationTime.Unix()), component, fields["hash"], cont.Image, namespace)
 				ch <- m2

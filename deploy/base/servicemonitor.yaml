@@ -13,7 +13,8 @@ spec:
     - interval: 120s
       path: /metrics
       port: metrics-port
-      scheme: http
+      tlsConfig:
+        insecureSkipVerify: true
       scrapeTimeout: 30s
   namespaceSelector:
     matchNames:
