@@ -1,23 +1,30 @@
 package main
 
 import (
-	"fmt"
+	"flag"
 	"log"
 	"net/http"
+
+	"k8s.io/klog/v2"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
+	klog.InitFlags(nil)
+	defer klog.Flush()
+	flag.Set("v", "1")
+	flag.Parse()
+
 	reg := prometheus.NewRegistry()
 	foo, err := NewCommitTimeCollector()
 	if err != nil {
-		fmt.Printf("can't find openshift cluster: %s", err)
+		klog.Errorf("can't find openshift cluster: %s", err)
 		return
 	}
 	reg.MustRegister(foo)
-	log.Println("Running exporters...")
+	klog.Info("Running exporters...")
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 	log.Fatal(http.ListenAndServe(":9101", nil))
 }

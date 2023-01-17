@@ -3,6 +3,7 @@ package main
 import (
 	"regexp"
 	"strings"
+	"time"
 )
 
 // Helper function and regex to extract values from an image URL
@@ -26,4 +27,13 @@ func filterImage(prefixes []string, image string) bool {
 		}
 	}
 	return false
+}
+
+func isDateTooOldForPrometheus(t *time.Time) bool {
+	if t == nil {
+		return false
+	}
+	checkDate := time.Now().Add(15 * 24 * time.Hour)
+	isDateTooOldForPormetheus := t.Before(checkDate)
+	return isDateTooOldForPormetheus
 }

@@ -140,7 +140,7 @@ func (k *KubeClients) GetDeploymentReplicaSetCreationTime(namespace string, owne
 	}
 
 	for _, rs := range rsList.Items {
-		if rs.OwnerReferences[0].Name == owner {
+		if rs.OwnerReferences[0].Name == owner && (rs.Status.AvailableReplicas == rs.Status.Replicas) {
 			for _, cont := range rs.Spec.Template.Spec.Containers {
 				if cont.Image == image {
 					return rs.ObjectMeta.CreationTimestamp, nil
@@ -148,5 +148,5 @@ func (k *KubeClients) GetDeploymentReplicaSetCreationTime(namespace string, owne
 			}
 		}
 	}
-	return metav1.Time{}, fmt.Errorf("no replicaset found for %s", image)
+	return metav1.Time{}, fmt.Errorf("no replicaset found for %s or replicas are not available", image)
 }

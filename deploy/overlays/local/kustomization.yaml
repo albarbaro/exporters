@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
 - ../../base
+- route.yaml
 
 images:
   - name: quay.io/abarbaro/exporters

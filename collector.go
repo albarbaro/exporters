@@ -8,6 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 )
 
 const CLUSTER_NAME string = "local_demo_cluster"
@@ -16,14 +17,15 @@ const APP_LABEL string = "app.kubernetes.io/instance"
 // Define a struct for you collector that contains pointers to prometheus descriptors for each metric you wish to expose.
 // You can also include fields of other types if they provide utility
 type CommitTimeCollector struct {
-	commitTimeMetric *prometheus.Desc
-	deployTimeMetric *prometheus.Desc
-	githubClient     *GithubClient
-	kubeClient       *KubeClients
-	commitHashSet    map[string]bool
-	gitCache         map[string]*time.Time
-	searchLabel      string
-	imageFilter      []string
+	commitTimeMetric       *prometheus.Desc
+	deployTimeMetric       *prometheus.Desc
+	activeDeploymentMetric *prometheus.Desc
+	githubClient           *GithubClient
+	kubeClient             *KubeClients
+	commitHashSet          map[string]bool
+	gitCache               map[string]*time.Time
+	searchLabel            string
+	imageFilter            []string
 }
 
 // You must create a constructor for you collector that initializes every descriptor and returns a pointer to the collector
@@ -58,20 +60,24 @@ func NewCommitTimeCollector() (*CommitTimeCollector, error) {
 			searchLabel = label
 		}
 	} else {
-		fmt.Println("no configmap found")
+		klog.Error("no configmap found")
 	}
 
-	fmt.Println("Using label ", searchLabel)
-	fmt.Println("Using image filters: ", imageFilters)
+	klog.V(3).Infof("Using label ", searchLabel)
+	klog.V(3).Infof("Using image filters: ", imageFilters)
 
 	return &CommitTimeCollector{
-		commitTimeMetric: prometheus.NewDesc("committime_metric",
+		commitTimeMetric: prometheus.NewDesc("dora:committime",
 			"Shows timestamp for a specific commit",
-			[]string{"app", "commit_hash", "image_sha", "namespace"}, nil,
+			[]string{"app", "commit_hash", "image", "namespace"}, nil,
 		),
-		deployTimeMetric: prometheus.NewDesc("deploytime_metric",
+		deployTimeMetric: prometheus.NewDesc("dora:deploytime",
 			"Shows deployment timestamp for a specific commit",
-			[]string{"app", "commit_hash", "image_sha", "namespace"}, nil,
+			[]string{"app", "commit_hash", "image", "namespace"}, nil,
+		),
+		activeDeploymentMetric: prometheus.NewDesc("dora:deployactive",
+			"Shows the active deplyment's timestamp in time",
+			[]string{"app", "commit_hash", "image", "namespace"}, nil,
 		),
 		githubClient:  gh,
 		kubeClient:    kubeClient,
@@ -99,7 +105,7 @@ func (collector *CommitTimeCollector) Collect(ch chan<- prometheus.Metric) {
 
 	deploymentList, err := collector.kubeClient.ListDeploymentsByLabels(collector.searchLabel)
 	if err != nil {
-		fmt.Println(err)
+		klog.Error(err)
 		return
 	}
 
@@ -131,37 +137,41 @@ func (collector *CommitTimeCollector) CollectCommitTime(ch chan<- prometheus.Met
 		// check if we have already searched for this commit, before requesting github apis
 		// if yes, use that value and return
 		commitTimeValue, commitCached := collector.gitCache[cont.Image]
-		if commitCached {
+		fmt.Println(commitTimeValue, commitCached)
+		if !commitCached {
+			klog.V(3).Infof("Commit time is not cached yet: %s %s", fields["repo"], fields["hash"])
+		} else {
 			m1 := prometheus.MustNewConstMetric(collector.commitTimeMetric, prometheus.GaugeValue, float64(commitTimeValue.Unix()), component, fields["hash"], cont.Image, namespace)
-			m1 = prometheus.NewMetricWithTimestamp(*commitTimeValue, m1)
+			// We let prometheus set the scraping timestamp; if we force-set it to the commit time we risk losing old out-of-bound data
 			ch <- m1
-			//fmt.Println("collected (from cache) committime for ", cont.Image)
+			klog.V(3).Infof("collected (from cache) committime for %s", cont.Image)
 			return
 		}
-		//fmt.Println("Commit time is not cached yet: ", fields["repo"], " ", fields["hash"])
 
 		// if the data is not cached, look in github: first try is using org+repo+hash to directly get the data from the repo (we want to avoid searching for a generic hash)
 		commit, err := collector.githubClient.GetCommitFromOrgAndRepo(fields["org"], fields["repo"], fields["hash"])
-		if err == nil {
+		if err != nil {
+			klog.V(2).Infof("Can't find commit time using %s, %s and %s", fields["org"], fields["repo"], fields["hash"])
+		} else {
 			m1 := prometheus.MustNewConstMetric(collector.commitTimeMetric, prometheus.GaugeValue, float64(commit.Author.Date.Unix()), component, fields["hash"], cont.Image, namespace)
-			m1 = prometheus.NewMetricWithTimestamp(*commit.Author.Date, m1)
+			// We let prometheus set the scraping timestamp; if we force-set it to the commit time we risk losing old out-of-bound data
 			ch <- m1
-			//fmt.Println("collected committime for ", cont.Image)
+			klog.V(3).Infof("collected committime for %s", cont.Image)
 			collector.gitCache[cont.Image] = commit.Author.Date
 			return
 		}
-		//fmt.Println("Can't find commit time using ", fields["repo"], " and ", fields["hash"])
 
 		commit, err = collector.githubClient.SearchCommit(fields["hash"])
-		if err == nil {
+		if err != nil {
+			klog.V(1).Infof("Can't find commit either by get or search: %s - %s", fields["repo"], fields["hash"])
+		} else {
 			m1 := prometheus.MustNewConstMetric(collector.commitTimeMetric, prometheus.GaugeValue, float64(commit.Author.Date.Unix()), component, fields["hash"], cont.Image, namespace)
-			m1 = prometheus.NewMetricWithTimestamp(*commit.Author.Date, m1)
+			// We let prometheus set the scraping timestamp; if we force-set it to the commit time we risk losing old out-of-bound data
 			ch <- m1
-			//fmt.Println("collected committime for ", cont.Image, ": ", err)
+			klog.V(3).Infof("collected committime for %s", cont.Image, ": ", err)
 			collector.gitCache[cont.Image] = commit.Author.Date
 			return
 		}
-		fmt.Println("Can't find commit either by get or search: ", fields["repo"], " ", fields["hash"])
 
 	}
 
@@ -181,16 +191,23 @@ func (collector *CommitTimeCollector) CollectDeployTime(ch chan<- prometheus.Met
 		if isActive {
 			creationTime, err := collector.kubeClient.GetDeploymentReplicaSetCreationTime(namespace, depl.Name, cont.Image)
 			if err != nil {
-				fmt.Println(err)
+				klog.Error(err)
 			} else {
 				m1 := prometheus.MustNewConstMetric(collector.deployTimeMetric, prometheus.GaugeValue, float64(creationTime.Unix()), component, fields["hash"], cont.Image, namespace)
+				// We care only deployments collected after install time, so we can force-set the timestamp to the deplytime without loosing any data
+				// This will simplify building the metrics in Grafana.
+				// Active deplyments with current timestamp are anyways collected by the activeDeploymentMetric right after
 				m1 = prometheus.NewMetricWithTimestamp(creationTime.Time, m1)
 				ch <- m1
-				//fmt.Println("collected deploytime for ", cont.Image)
+				klog.V(3).Infof("collected deploytime for %s", cont.Image)
+
+				m2 := prometheus.MustNewConstMetric(collector.activeDeploymentMetric, prometheus.GaugeValue, float64(creationTime.Unix()), component, fields["hash"], cont.Image, namespace)
+				ch <- m2
+				klog.V(3).Infof("collected active deployment for %s", cont.Image)
 			}
 
 		} else {
-			fmt.Printf("%s deploy time not collected because deployment is not in active state.\n", cont.Image)
+			klog.V(1).Infof("%s deploy time not collected because deployment is not in active state.\n", cont.Image)
 		}
 	}
 }
